@@ -1,5 +1,5 @@
-package lipid;
+    package lipid;
 
-public enum IoniationMode {
-    POSITIVE, NEGATIVE;
-}
+    public enum IoniationMode {
+        POSITIVE, NEGATIVE;
+    }

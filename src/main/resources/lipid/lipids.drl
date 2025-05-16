@@ -1,27 +1,121 @@
-
 package lipid;
 
 unit LipidScoreUnit;
 
-// TODO Include here rules and queries to fulfill the practice requirements
 
-
-// This is one example of rules that only prints the factorial combination of all pairs eliminating the A-A combination.
-// !! TODO This rule does not include the lipid type, you shall add it.
-// !! TODO Rule that states that the same lipid type with the same number of double bonds and a higher number of carbons should have a higher RT
-// !! TODO
-rule "Score 1 for lipid pair with increasing RT and carbon count"
+rule "Score +1 if same type, same DB, more C => higher RT"
 when
-    $a1 : /annotations [$rt1 : rtMin, $carbonCount1 : lipid.getCarbonCount(), $doubleBondCount : lipid.getDoubleBondsCount()]
-    $a2 : /annotations [this!= $a1, lipid.getDoubleBondsCount() == $doubleBondCount,
-    rtMin > $rt1, lipid.getCarbonCount() > $carbonCount1]
+    $a1: /annotations[
+        $rt1: rtMin,
+        $lipid1: lipid,
+        $c1: lipid.getCarbonCount(),
+        $db: lipid.getDoubleBondsCount(),
+        $type: lipid.getLipidType()
+    ]
+    $a2: /annotations[
+        this != $a1,
+        lipid.getLipidType() == $type,
+        lipid.getDoubleBondsCount() == $db,
+        lipid.getCarbonCount() > $c1,
+        rtMin > $rt1
+    ]
 then
-    // in this case, the only change is the addition of the score, but the fact does not change so we do not break the principle of refractoriness
     $a1.addScore(1);
     $a2.addScore(1);
-    // !! TODO ONLY FOR DEBUGGING
-    System.out.println("Scored 1 for annotations: " + $a1 + " and " + $a2);
 end
 
+rule "Score +1 if same type, same C, more DB => lower RT"
+when
+    $a1: /annotations[
+        $rt1: rtMin,
+        $lipid1: lipid,
+        $c: lipid.getCarbonCount(),
+        $db1: lipid.getDoubleBondsCount(),
+        $type: lipid.getLipidType()
+    ]
+    $a2: /annotations[
+        this != $a1,
+        lipid.getLipidType() == $type,
+        lipid.getCarbonCount() == $c,
+        lipid.getDoubleBondsCount() > $db1,
+        rtMin < $rt1
+    ]
+then
+    $a1.addScore(1);
+    $a2.addScore(1);
 
-// !! TODO NEXT RULE: Negative evidence. If the RT follows the opposite order than the previous one, then the addScore should be -1.
+end
+
+rule "Score +1 if lipid type follows correct elution order"
+when
+    $a1: /annotations[
+        $rt1: rtMin,
+        $t1: lipid.getLipidType()
+    ]
+    $a2: /annotations[
+        this != $a1,
+        $t2: lipid.getLipidType(),
+        lipid.getLipidType().ordinal() > $t1.ordinal(),
+        rtMin > $rt1
+    ]
+then
+    $a1.addScore(1);
+    $a2.addScore(1);
+end
+
+rule "Score -1 if same type, same DB, more C => lower RT"
+when
+    $a1: /annotations[
+        $rt1: rtMin,
+        $c1: lipid.getCarbonCount(),
+        $db: lipid.getDoubleBondsCount(),
+        $type: lipid.getLipidType()
+    ]
+    $a2: /annotations[
+        this != $a1,
+        lipid.getLipidType() == $type,
+        lipid.getDoubleBondsCount() == $db,
+        lipid.getCarbonCount() > $c1,
+        rtMin < $rt1
+    ]
+then
+    $a1.addScore(-1);
+    $a2.addScore(-1);
+end
+
+rule "Score -1 if same type, same C, more DB => higher RT"
+when
+    $a1: /annotations[
+        $rt1: rtMin,
+        $c: lipid.getCarbonCount(),
+        $db1: lipid.getDoubleBondsCount(),
+        $type: lipid.getLipidType()
+    ]
+    $a2: /annotations[
+        this != $a1,
+        lipid.getLipidType() == $type,
+        lipid.getCarbonCount() == $c,
+        lipid.getDoubleBondsCount() > $db1,
+        rtMin > $rt1
+    ]
+then
+    $a1.addScore(-1);
+    $a2.addScore(-1);
+end
+
+rule "Score -1 if lipid type elutes in wrong order"
+when
+    $a1: /annotations[
+        $rt1: rtMin,
+        $t1: lipid.getLipidType()
+    ]
+    $a2: /annotations[
+        this != $a1,
+        $t2: lipid.getLipidType(),
+        lipid.getLipidType().ordinal() > $t1.ordinal(),
+        rtMin < $rt1
+    ]
+then
+    $a1.addScore(-1);
+    $a2.addScore(-1);
+end
